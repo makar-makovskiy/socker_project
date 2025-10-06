@@ -2,6 +2,9 @@ import express, {Application} from 'express';
 import http, { Server } from 'http';
 import {Server as IOServer} from 'socket.io';
 import cors from 'cors';
+import { PrismaClient } from './generated/prisma';
+
+const newPrsm = new PrismaClient
 
 class SocketServer {
     private app: Application
@@ -28,25 +31,52 @@ class SocketServer {
     private configureRoutes() {
         this.app.get('/', (req, res) => res.send("Hello"))
     }
-
+      
     private configureSocketEvents() {
         this.io.on('connection', (socket) => {
-            console.log('connection',socket.id)
+            console.log('connection',socket.id);
             
-            socket.emit('server_message', "Добро пожаловать на сервер")
-            
-            socket.on("client_message", (client_message)=>{
-            socket.broadcast.emit('server_message', "Пользователь подключился")
-            console.log(`Сообщение от пользователя ${socket.id} - ${client_message}`)
-            socket.broadcast.emit('server_message', `Пользователь ${socket.id} - ${client_message}`)
-            })
             socket.on('disconnect', () => {
             console.log('disconnect',socket.id)
-            socket.broadcast.emit('server_message', "Пользователь отключился")
-            console.log(`Пользователь отключился ${socket.id}`)
         })
-    })
+        socket.on('login', async (user_id: string) => {
+                try{
+                  const user = await newPrsm.user.upsert ({
+                     where:  {user_id},
+                     update: { online: true },
+                     create: { user_id, online: true}
+                  })
+                  console.log("Пользователь зарегистрирован", user_id)
+
+                  socket.broadcast.emit("userInfo", {
+                    user_id: user.user_id,
+                    online: user.online,
+                    created_at: user.created_at
+                  })
+                } catch (err) {
+                    console.log("Ошибка авторизации", err)
+                }
+            })
+        socket.on('logout', async (user_id: string) => {
+            try{
+                const user = await newPrsm.user.update ({
+                    where: {user_id},
+                    data: {online: false}
+                })
+                console.log("Пользователь вышел", user_id)
+
+                socket.broadcast.emit('userInfo', {
+                    user_id: user.user_id,
+                    online: user.online,
+                    created_at: user.created_at
+                })
+            }catch (err) {
+                console.log("Ошибка выхода", err)
+            }
+        })
+      })
  }
+
 
     public start() {
         this.httpServer.listen(
