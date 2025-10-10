@@ -34,8 +34,22 @@ class SocketServer {
       
     private configureSocketEvents() {
         this.io.on('connection', (socket) => {
+        //    ЗАДАНИЕ - добавляем сокет в комнату (обработка в index.html)
+            socket.join("room1")
+            socket.join("admin")
+            
+            this.io.to("room1").emit("joinRoom_room1", "user was connected")
+
+            this.io.except("admin").emit("update", "hello vsem!")
+            // socket.leave('room1')
+
             console.log('connection',socket.id);
             
+            socket.on("ping", (count) => {
+                console.log(count);
+            });
+
+
             socket.on('disconnect', () => {
             console.log('disconnect',socket.id)
         })

@@ -40,11 +40,28 @@
             socket.on('userInfo', function(userData){
                   console.log('Информация пользователя:', userData);
             });
-
+             
             socket.on('broadcasted', function(message) {
                   console.log("Broadcast:", message);
             });
+            //    ЗАДАНИЕ обработка события
+            socket.on("joinRoom_room1", function(joinRoom) {
+                  console.log(joinRoom)
+            });
+             socket.on("update", function(update1) {
+                  console.log(update1)
+            });
+
+
+
         };
+
+            
+
+        let count = 0
+        setInterval(() => {
+            socket.volatile.emit("ping", ++count)
+        }, 1000)
 
          document.getElementById('ExitButton').onclick = function() {
             const userId = document.getElementById('userIdInput').value.trim();
